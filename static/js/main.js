@@ -1,4 +1,5 @@
 $(document).ready(function () {
+    const converter = new showdown.Converter();
 
     const projectTypeOptions = {
         'Coding': 'Senior Engineer',
@@ -18,130 +19,90 @@ $(document).ready(function () {
         'Philosophy': 'Philosopher'
     };
 
-
-    const projectTypeDropdown = $('#project_type_dropdown');
-
-    $.each(projectTypeOptions, function(key, value) {
-        projectTypeDropdown.append($('<option>', {
-            value: key.toLowerCase(),
-            text: key
-        }));
-    });
-
-
-    const referencPreferenceDropDown = $("#reference_preference")
-
-    const referencePreferanceOptions= {"Youtube (free)": "youtube", "Video": "video", "Book": "book", "Text": "text", "Combo": "youtube, video, text, book"}
-
-
-
-    $.each(referencePreferanceOptions, function(key, value) {
-        referencPreferenceDropDown.append($('<option>', {
-            value:  value,
-            text: key
-        }));
-    });
+    const referencePreferanceOptions = {
+        "Youtube (free)": "youtube", 
+        "Video": "video", 
+        "Book": "book", 
+        "Text": "text", 
+        "Combo": "youtube, video, text, book"
+    };
 
     function createTimeDurationObject() {
         let durations = [];
-
-        for (let i = 1; i <= 20; i++) {
-            durations.push({ key: `${i} hour${i > 1 ? 's' : ''}`, value: i });
-        }
-
-        for (let i = 1; i <= 30; i++) {
-            durations.push({ key: `${i} day${i > 1 ? 's' : ''}`, value: i * 24 });
-        }
-
-
-        for (let i = 1; i <= 9; i++) {
-            durations.push({ key: `${i} month${i > 1 ? 's' : ''}`, value: i * 30 * 24 });
-        }
-
-
+        for (let i = 1; i <= 20; i++) durations.push({ key: `${i} hour${i > 1 ? 's' : ''}`, value: i });
+        for (let i = 1; i <= 30; i++) durations.push({ key: `${i} day${i > 1 ? 's' : ''}`, value: i * 24 });
+        for (let i = 1; i <= 9; i++) durations.push({ key: `${i} month${i > 1 ? 's' : ''}`, value: i * 30 * 24 });
         durations.sort((a, b) => a.value - b.value);
-
-
-        const sortedDurations = {};
-        durations.forEach(duration => {
-            sortedDurations[duration.key] = duration.value;
-        });
-
-        return sortedDurations;
+        return durations;
     }
 
-    const timeFrameOptions = createTimeDurationObject()
+    // Populate Dropdowns
+    const projectTypeDropdown = $('#project_type_dropdown');
+    if (projectTypeDropdown.length) {
+        $.each(projectTypeOptions, function(key, value) {
+            projectTypeDropdown.append($('<option>', { value: key.toLowerCase(), text: key }));
+        });
+    }
 
-    const timeFrameDropdown = $("#timeframe")
+    const referencPreferenceDropDown = $("#reference_preference");
+    if (referencPreferenceDropDown.length) {
+        $.each(referencePreferanceOptions, function(key, value) {
+            referencPreferenceDropDown.append($('<option>', { value: value, text: key }));
+        });
+    }
 
+    const timeFrameDropdown = $("#timeframe");
+    if (timeFrameDropdown.length) {
+        const durations = createTimeDurationObject();
+        durations.forEach(d => {
+            timeFrameDropdown.append($('<option>', { value: d.key, text: d.key }));
+        });
+    }
 
+    /** STUDY PLAN SUBMISSION */
+    $('#studyPlanSubmitBtn').on('click', async function() {
+        const $btn = $(this);
+        const $spinner = $('#spinner');
+        const form = document.getElementById('studyPlanForm');
+        const formData = new FormData(form);
 
+        // Simple validation
+        const goal = formData.get('goal');
+        if (!goal) {
+            alert("Please enter a learning goal.");
+            return;
+        }
 
-    $.each(timeFrameOptions, function(key, value) {
-        timeFrameDropdown.append($('<option>', {
-            value: key,
-            text: key
-        }));
-    });
+        try {
+            $btn.prop('disabled', true);
+            $spinner.removeClass('hidden');
 
-    const timeConstraintsDropdown = $("#time_constraint")
+            const response = await fetch('/study_plan_creator', {
+                method: 'POST',
+                body: formData
+            });
 
+            const data = await response.json();
 
-
-
-    $.each(timeFrameOptions, function(key, value) {
-        timeConstraintsDropdown.append($('<option>', {
-            value: key,
-            text: key
-        }));
-    });
-
-
-    const baseUrl = window.location.origin;
-
-    const converter = new showdown.Converter();
-
-    /** STUDY PLAN SECTION */
-
-    $('#studyPlanSubmitBtn').on('click', function() {
-        (async function() {
-            try {
-                $('#studyPlanSubmitBtn').prop('disabled', true);
-                $('#spinner').removeClass('hidden');
-                const form = document.getElementById('studyPlanForm');
-                const formData = new FormData(form);
-                formData.forEach(function(value, key) {
-                    if(!value) {
-                        throw new Error('Some fields are missing');
-                    }
-                });
-                const response = await fetch(`${baseUrl}/study_plan_creator`, {
-                    method: 'POST',
-                    body: formData
-                })
-                if(!response.ok) {
-                    throw new Error('Something went wrong');
-                }
-                const data = await response.json();
-                const html = converter.makeHtml(data.response);
-                $('#studyPlanResponse').html(html);
-                $('#studyPlanResponseContainer').removeClass('hidden');
-            } catch (error) {
-                console.log(error);
-                if(error.message) {
-                    $('#studyPlanErrorMessageContainer').removeClass('hidden').addClass('flex');
-                    $('#studyPlanErrorMessage').text(error.message);
-                }
+            if (!response.ok) {
+                throw new Error(data.error || 'Something went wrong');
             }
-            finally {
-                $('#studyPlanSubmitBtn').prop('disabled', false);
-                $('#spinner').addClass('hidden');
-            }
-        })();
+
+            const html = converter.makeHtml(data.response);
+            $('#studyPlanResponse').html(html);
+            $('#studyPlanResponseContainer').removeClass('hidden');
+            
+            // Scroll to response
+            $('html, body').animate({
+                scrollTop: $("#studyPlanResponseContainer").offset().top - 100
+            }, 500);
+
+        } catch (error) {
+            console.error(error);
+            alert(error.message);
+        } finally {
+            $btn.prop('disabled', false);
+            $spinner.addClass('hidden');
+        }
     });
-
-    $('#closeStudyPlanErrorBtn').on('click', function() {
-        $('#studyPlanErrorMessageContainer').removeClass('flex').addClass('hidden');
-    });
-
-
+});

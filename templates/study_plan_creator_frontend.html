@@ -1,73 +1,122 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link  href="/static/css/output.css" rel="stylesheet"/>
-        <title>Study Planner</title>
-    </head>
-    <body class="bg-[#2596be]">
-        <nav class="bg-white py-2 px-4 flex items-center justify-between">
-            <a href="/" class="block"><img src="../static/images/logo.png" /></a>
-            <p class="font-bold text-[20px] text-[#374151]">STUDY PLANNER</p>
-            <div></div>
-        </nav>
-        <div class="mt-10 flex flex-col justify-center items-center py-2">
-            <div class="lg:w-[50%] w-[90%] bg-white rounded-lg text-[#374151]">
-                <form id="studyPlanForm" class="py-3 px-5">
-                    <h1 class="text-[20px] text-[#111827]">Study Planner</h1>
-                    <p class="text-[14px] text-[#4B5563]">Create study plan with timeline and relevant resources.</p>
-                    <div id="studyPlanErrorMessageContainer" class="mt-5 bg-red-50 border border-red-500 rounded-md p-2 hidden justify-between items-center">
-                        <p id="studyPlanErrorMessage" class="text-red-500 font-semibold text-[14px]"></p>
-                        <button type="button" id="closeStudyPlanErrorBtn">
-                            <img width="18" height="18" src="https://img.icons8.com/color/18/delete-sign--v1.png" alt="delete-sign--v1"/>
-                        </button>
-                    </div>
-                    <div class="mt-5">
-                        <div>
-                            <label class="form-label block">What is your plan?</label>
-                            <textarea placeholder="eg. I want to learn AI skills to build AI apps using the OpenAI API" name="goal" class="form-control mt-2" rows="4"></textarea>
-                        </div>
-                        <div class="mt-4 grid lg:grid-cols-2 grid-cols-1 gap-4">
-                            <div>
-                                <label class="form-label block">What is your timeframe?</label>
-                                
-                                <select id="timeframe" name="timeframe" type="text" class="form-control mt-2"></select>
-                                    
-                            </div>
-                            <div>
-                                <label class="form-label block">What type of project?</label>
-                                <select id="project_type_dropdown" name="project_type" class="form-control form-select mt-2"></select>
-                            </div>
-                        </div>
-                        <div class="mt-4 grid lg:grid-cols-2 grid-cols-1 gap-4">
-                            <div>
-                                <label class="form-label block">What is your reference preference?</label>
-                                <select id="reference_preference" name="reference_preference" type="text" class="form-control mt-2"></select>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-                <div class="mt-4 bg-[#F9FAFB] flex justify-end gap-3 py-3 px-5 rounded-b-lg">
-                    <a class="px-5 py-[7px] rounded-md border border-[#D1D5DB] bg-white text-[14px]" href="/">Back</a>
-                    <button type="button" id="studyPlanSubmitBtn" class="flex items-center gap-small py-[7px] px-4 rounded-md border border-[#544372] bg-[#544372] text-white text-[14px] disabled:bg-[#836b91] disabled:border-[#836b91]">
-                        <span>Create plan</span> 
-                        <img id="spinner" class="hidden" width="20" height="20" src="../static/images/spinner.gif" />
-                    </button>
-                </div>
-            </div>
-            <div id="studyPlanResponseContainer" class="lg:w-[50%] w-[90%] rounded-lg mt-4 hidden">
-                <div class="bg-white py-3 px-5 rounded-t-md">
-                    <h1 class="text-[20px] text-[#111827]">Study Plan</h1>
-                </div>
-                <div class="bg-[#E7E9EC] py-3 px-5 rounded-b-md text-[14px]">
-                    <div class="response-cover" id="studyPlanResponse"></div>
-                </div>
+{% extends "base.html" %}
+
+{% block title %}Create Plan - Study Planner{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="md:grid md:grid-cols-3 md:gap-6">
+        <div class="md:col-span-1">
+            <div class="px-4 sm:px-0">
+                <h3 class="text-lg font-medium leading-6 text-gray-900">Study Plan Details</h3>
+                <p class="mt-1 text-sm text-gray-600">
+                    Tell us what you want to learn, and our AI will create a personalized schedule for you.
+                </p>
             </div>
         </div>
-        <script src="https://unpkg.com/showdown/dist/showdown.min.js"></script>
-        <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-        <script src="/static/js/main.js"></script>
-    </body>
-</html>
+        <div class="mt-5 md:mt-0 md:col-span-2">
+            <form id="studyPlanForm">
+                <div class="shadow sm:rounded-md sm:overflow-hidden">
+                    <div class="px-4 py-5 bg-white space-y-6 sm:p-6">
+                        <div>
+                            <label for="goal" class="block text-sm font-medium text-gray-700">What is your learning goal?</label>
+                            <div class="mt-1">
+                                <textarea id="goal" name="goal" rows="3" class="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md p-2" placeholder="e.g., Master React.js and build a portfolio project"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-6 gap-6">
+                            <div class="col-span-6 sm:col-span-3">
+                                <label for="timeframe" class="block text-sm font-medium text-gray-700">Timeframe</label>
+                                <select id="timeframe" name="timeframe" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+
+                            <div class="col-span-6 sm:col-span-3">
+                                <label for="project_type_dropdown" class="block text-sm font-medium text-gray-700">Project Type</label>
+                                <select id="project_type_dropdown" name="project_type" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 grid lg:grid-cols-2 grid-cols-1 gap-4">
+                            <div>
+                                <label for="reference_preference" class="block text-sm font-medium text-gray-700">Resource Preference</label>
+                                <select id="reference_preference" name="reference_preference" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+                            <div>
+                                <label for="model_select" class="block text-sm font-medium text-gray-700">Brain Model</label>
+                                <select id="model_select" name="model" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <optgroup label="OpenAI">
+                                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Fast)</option>
+                                        <option value="gpt-4o">GPT-4o (Smartest)</option>
+                                    </optgroup>
+                                    <optgroup label="OpenRouter (Universal)">
+                                        <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Latest)</option>
+                                        <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
+                                        <option value="anthropic/claude-3-opus">Claude 3 Opus</option>
+                                        <option value="meta-llama/llama-3-70b-instruct">Llama 3 70B</option>
+                                        <option value="mistralai/mixtral-8x7b-instruct">Mixtral 8x7B</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input id="is_public" name="is_public" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="is_public" class="font-medium text-gray-700">Publish Publicly</label>
+                                <p class="text-gray-500">Allow others to see and learn from your plan.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                        <button type="button" id="studyPlanSubmitBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <span>Create Plan</span>
+                            <i id="spinner" class="fas fa-spinner fa-spin ml-2 hidden"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="studyPlanResponseContainer" class="mt-10 hidden">
+        <div class="bg-white shadow sm:rounded-lg overflow-hidden">
+            <div class="px-4 py-5 sm:px-6 bg-indigo-600">
+                <h3 class="text-lg leading-6 font-medium text-white">Your AI-Generated Study Plan</h3>
+            </div>
+            <div class="border-t border-gray-200 px-4 py-5 sm:p-6 bg-white prose max-w-none" id="studyPlanResponse">
+                <!-- Content injected by JS -->
+            </div>
+            <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between">
+                <a href="/my_plans" class="text-indigo-600 hover:text-indigo-900 font-medium">View All My Plans &rarr;</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/main.js"></script>
+<script>
+    document.getElementById('model_select').onchange = async function() {
+        const model = this.value;
+        await fetch('/update_settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ preferred_model: model })
+        });
+    };
+    
+    // Set current preference
+    window.onload = function() {
+        document.getElementById('model_select').value = "{{ current_user.preferred_model }}";
+    };
+</script>
+{% endblock %}

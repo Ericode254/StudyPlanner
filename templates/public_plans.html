@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Public Plans - Study Planner{% endblock %}
+
+{% block content %}
+<div class="px-4 sm:px-6 lg:px-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-semibold text-gray-900">Community Study Plans</h1>
+            <p class="mt-2 text-sm text-gray-700">Explore study plans shared by the community and find inspiration for your next goal.</p>
+        </div>
+    </div>
+
+    <div class="mt-8 grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {% for plan in plans %}
+        <div class="bg-white overflow-hidden shadow rounded-lg flex flex-col border border-gray-100">
+            <div class="px-4 py-5 sm:p-6 flex-grow">
+                <div class="flex items-center space-x-3 mb-4">
+                    <div class="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-xs">
+                        {{ plan.user.username[0]|upper }}
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-gray-500">By {{ plan.user.username }}</p>
+                    </div>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900">{{ plan.title }}</h3>
+                <p class="mt-2 text-sm text-gray-500">{{ plan.goal[:120] }}{% if plan.goal|length > 120 %}...{% endif %}</p>
+                <div class="mt-4 flex items-center text-xs text-gray-400">
+                    <i class="far fa-calendar-alt mr-1"></i>
+                    {{ plan.created_at.strftime('%b %d, %Y') }}
+                </div>
+            </div>
+            <div class="bg-gray-50 px-4 py-4 sm:px-6 flex justify-between gap-2">
+                <button onclick="viewPublicPlan({{ plan.id }})" class="flex-grow inline-flex justify-center py-2 px-4 border border-indigo-600 rounded-md shadow-sm text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50">
+                    View Plan
+                </button>
+                <button onclick="likePlan({{ plan.id }}, this)" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="far fa-heart mr-1"></i> <span class="like-count"></span>
+                </button>
+                <button onclick="forkPlan({{ plan.id }})" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50" title="Fork this plan">
+                    <i class="fas fa-code-branch"></i>
+                </button>
+            </div>
+            
+            <div id="plan-content-{{ plan.id }}" class="hidden">{{ plan.content }}</div>
+            <div id="plan-title-{{ plan.id }}" class="hidden">{{ plan.title }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Updated Modal with Comments -->
+<div id="publicPlanModal" class="fixed z-50 inset-0 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-2xl leading-6 font-bold text-gray-900" id="public-modal-title"></h3>
+                    <button onclick="closePublicModal()" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mt-6 md:grid md:grid-cols-3 md:gap-6">
+                    <div class="md:col-span-2 prose max-w-none border-r border-gray-100 pr-6" id="public-modal-content"></div>
+                    <div class="md:col-span-1 flex flex-col h-[500px]">
+                        <h4 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Comments</h4>
+                        <div id="comments-container" class="flex-grow overflow-y-auto space-y-4 mb-4">
+                            <!-- Comments here -->
+                        </div>
+                        <div class="mt-auto">
+                            <textarea id="comment-input" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" rows="2" placeholder="Add a comment..."></textarea>
+                            <button id="submit-comment-btn" class="mt-2 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                Post
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const converter = new showdown.Converter();
+    let currentPlanId = null;
+
+    async function viewPublicPlan(id) {
+        currentPlanId = id;
+        const response = await fetch(`/plan_details/${id}`);
+        const data = await response.json();
+        
+        document.getElementById('public-modal-title').innerText = data.title;
+        document.getElementById('public-modal-content').innerHTML = converter.makeHtml(data.content);
+        
+        const commentsContainer = document.getElementById('comments-container');
+        commentsContainer.innerHTML = data.comments.map(c => `
+            <div class="bg-gray-50 p-3 rounded-lg text-sm">
+                <div class="font-bold text-indigo-600">${c.username}</div>
+                <div class="text-gray-700">${c.content}</div>
+                <div class="text-[10px] text-gray-400 mt-1">${c.date}</div>
+            </div>
+        `).join('') || '<p class="text-gray-400 text-sm italic">No comments yet.</p>';
+        
+        document.getElementById('publicPlanModal').classList.remove('hidden');
+    }
+
+    function closePublicModal() {
+        document.getElementById('publicPlanModal').classList.add('hidden');
+    }
+
+    async function likePlan(id, btn) {
+        const response = await fetch(`/like_plan/${id}`, { method: 'POST' });
+        if (response.ok) {
+            const data = await response.json();
+            const icon = btn.querySelector('i');
+            if (data.liked) {
+                icon.classList.remove('far');
+                icon.classList.add('fas', 'text-red-500');
+            } else {
+                icon.classList.remove('fas', 'text-red-500');
+                icon.classList.add('far');
+            }
+        } else if (response.status === 401) {
+            window.location.href = '/login';
+        }
+    }
+
+    async function forkPlan(id) {
+        if (confirm('Want to fork this plan to your collection?')) {
+            const response = await fetch(`/fork_plan/${id}`, { method: 'POST' });
+            if (response.ok) {
+                alert('Plan forked successfully! You can find it in "My Plans".');
+            } else if (response.status === 401) {
+                window.location.href = '/login';
+            }
+        }
+    }
+
+    document.getElementById('submit-comment-btn').onclick = async () => {
+        const input = document.getElementById('comment-input');
+        const content = input.value.trim();
+        if (!content || !currentPlanId) return;
+
+        const response = await fetch(`/add_comment/${currentPlanId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content })
+        });
+
+        if (response.ok) {
+            input.value = '';
+            viewPublicPlan(currentPlanId); // Refresh
+        } else if (response.status === 401) {
+            window.location.href = '/login';
+        }
+    };
+</script>
+{% endblock %}
